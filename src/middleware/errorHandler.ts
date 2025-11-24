@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "../utils/errors/AppError";
+import mongoose from "mongoose";
 
 export function globalErrorHandler(
   err: unknown,
@@ -17,19 +18,26 @@ export function globalErrorHandler(
     });
   }
 
-  // Handle Mongoose ValidationError
-  if (err instanceof Error && err.name === "ValidationError") {
+  //Mongoose ValidationError
+  if (err instanceof mongoose.Error.ValidationError) {
     return res.status(400).json({
       status: "fail",
       message: err.message,
     });
   }
 
-  // Handle CastError
-  if (err instanceof Error && err.name === "CastError") {
+  // Mongoose CastError (invalid ObjectId)
+  if (err instanceof mongoose.Error.CastError) {
     return res.status(400).json({
       status: "fail",
-      message: "Invalid ID format",
+      message: `Invalid ${err.path}: '${err.value}'`,
+    });
+  }
+  //  Mongoose DocumentNotFoundError
+  if (err instanceof mongoose.Error.DocumentNotFoundError) {
+    return res.status(404).json({
+      status: "fail",
+      message: "Document not found",
     });
   }
 

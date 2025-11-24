@@ -4,20 +4,32 @@ import { Borrow } from "../models/Borrow";
 import { User } from "../models/User";
 import { Book } from "../models/Book";
 import { getPagination } from "../utils/pagination";
+import { assertIsObject } from "../utils/errors/validateObject";
+import { AppError } from "../utils/errors/AppError";
+
+interface ReserveBookFields {
+  userId: string;
+  bookId: string;
+}
 
 class ReservationService {
-  
-  /* --------------------------------------------------
-   * RESERVE A BOOK
-   * -------------------------------------------------- */
-  async reserveBook(data: any) {
-    const { userId, bookId } = data;
+  async reserveBook(data: unknown) {
+    assertIsObject(data, "Invalid request body");
 
+    const body = data as Partial<ReserveBookFields>;
+    const { userId, bookId } = body;
+
+    if (!userId || !bookId) {
+      throw new AppError("userId and bookId are required.", 400);
+    }
+
+    // Validate user
     const user = await User.findById(userId).select("name email");
-    if (!user) throw { status: 404, message: "User not found." };
+    if (!user) throw new AppError("User not found.", 404);
 
+    // Validate book
     const book = await Book.findById(bookId).select("title availableCopies");
-    if (!book) throw { status: 404, message: "Book not found." };
+    if (!book) throw new AppError("Book not found.", 404);
 
     // Already reserved?
     const existingReservation = await Reservation.findOne({
@@ -27,7 +39,7 @@ class ReservationService {
     });
 
     if (existingReservation) {
-      throw { status: 400, message: "You already reserved this book." };
+      throw new AppError("You already reserved this book.", 400);
     }
 
     // Already borrowed?
@@ -38,41 +50,48 @@ class ReservationService {
     });
 
     if (alreadyIssued) {
-      throw {
-        status: 400,
-        message: "You already borrowed this book. Cannot reserve.",
-      };
+      throw new AppError(
+        "You already borrowed this book. Cannot reserve.",
+        400
+      );
     }
 
     const reservedDate = new Date();
     const expiryDate = new Date();
     expiryDate.setDate(reservedDate.getDate() + 2);
 
-    const reservation = await Reservation.create({
-      userId,
-      bookId,
-      reservedDate,
-      expiryDate,
-      status: "active",
-    });
+    try {
+      const reservation = await Reservation.create({
+        userId,
+        bookId,
+        reservedDate,
+        expiryDate,
+        status: "active",
+      });
 
-    return {
-      message: "Book reserved successfully",
-      reservation,
-    };
+      return {
+        message: "Book reserved successfully",
+        reservation,
+      };
+    } catch (err:unknown) {
+      if (err instanceof mongoose.Error.ValidationError) {
+        throw new AppError(err.message, 400);
+      }
+      throw err;
+    }
   }
 
-  /* --------------------------------------------------
-   * GET ALL RESERVATIONS (ADMIN)
-   * -------------------------------------------------- */
-  async getAllReservations(query: any) {
-    const { page, limit, skip, sort } = getPagination(query, "-reservedDate");
+  async getAllReservations(query: unknown) {
+    assertIsObject(query, "Invalid query parameters");
 
-    const filter: Record<string, any> = {};
+    const q = query as Record<string, unknown>;
+    const { page, limit, skip, sort } = getPagination(q, "-reservedDate");
 
-    if (query.status) filter.status = query.status;
-    if (query.userId) filter.userId = query.userId;
-    if (query.bookId) filter.bookId = query.bookId;
+    const filter: Record<string, unknown> = {};
+
+    if (q.status) filter.status = q.status;
+    if (q.userId) filter.userId = q.userId;
+    if (q.bookId) filter.bookId = q.bookId;
 
     const total = await Reservation.countDocuments(filter);
 
@@ -91,15 +110,15 @@ class ReservationService {
     };
   }
 
-  /* --------------------------------------------------
-   * GET USER-SPECIFIC RESERVATIONS
-   * -------------------------------------------------- */
-  async getUserReservations(userId: string, query: any) {
-    const { page, limit, skip, sort } = getPagination(query, "-reservedDate");
+  async getUserReservations(userId: string, query: unknown) {
+    assertIsObject(query, "Invalid query parameters");
 
-    const filter: Record<string, any> = { userId };
+    const q = query as Record<string, unknown>;
+    const { page, limit, skip, sort } = getPagination(q, "-reservedDate");
 
-    if (query.status) filter.status = query.status;
+    const filter: Record<string, unknown> = { userId };
+
+    if (q.status) filter.status = q.status;
 
     const total = await Reservation.countDocuments(filter);
 
@@ -117,22 +136,19 @@ class ReservationService {
     };
   }
 
-  /* --------------------------------------------------
-   * CANCEL A RESERVATION
-   * -------------------------------------------------- */
   async cancelReservation(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw { status: 400, message: "Invalid reservation ID" };
+      throw new AppError("Invalid reservation ID", 400);
     }
 
     const reservation = await Reservation.findById(id);
-    if (!reservation) throw { status: 404, message: "Reservation not found." };
+    if (!reservation) throw new AppError("Reservation not found.", 404);
 
     if (reservation.status !== "active") {
-      throw {
-        status: 400,
-        message: `Cannot cancel reservation with status '${reservation.status}'.`,
-      };
+      throw new AppError(
+        `Cannot cancel reservation with status '${reservation.status}'.`,
+        400
+      );
     }
 
     reservation.status = "cancelled";
@@ -143,7 +159,6 @@ class ReservationService {
       reservation,
     };
   }
-
 }
 
 export default new ReservationService();

@@ -3,61 +3,90 @@ import { FinePayment } from "../models/FinedPayment";
 import { Borrow } from "../models/Borrow";
 import { User } from "../models/User";
 import { getPagination } from "../utils/pagination";
+import { assertIsObject } from "../utils/errors/validateObject";
+import { AppError } from "../utils/errors/AppError";
+
+interface PayFineFields {
+  userId: string;
+  borrowId: string;
+  amount: number;
+  method: string;
+}
 
 class FinePaymentService {
+  async payFine(data: unknown) {
+    assertIsObject(data, "Invalid request body");
+    const body = data as Partial<PayFineFields>;
 
-  /* --------------------------------------------------
-   * PAY FINE
-   * -------------------------------------------------- */
-  async payFine(data: any) {
-    const { userId, borrowId, amount, method } = data;
+    // Required field validation
+    const required = ["userId", "borrowId", "amount", "method"] as const;
+    for (const field of required) {
+      if (!body[field]) {
+        throw new AppError(`Missing required field: ${field}`, 400);
+      }
+    }
 
+    const { userId, borrowId, amount, method } = body;
+
+    // Validate user
     const user = await User.findById(userId).select("name email");
-    if (!user) throw { status: 404, message: "User not found" };
+    if (!user) throw new AppError("User not found", 404);
 
+    // Validate borrow
     const borrow = await Borrow.findById(borrowId);
-    if (!borrow) throw { status: 404, message: "Borrow record not found" };
+    if (!borrow) throw new AppError("Borrow record not found", 404);
 
     if (borrow.fine <= 0) {
-      throw { status: 400, message: "No outstanding fine for this borrow record." };
+      throw new AppError("No outstanding fine for this borrow record.", 400);
     }
 
     if (amount !== borrow.fine) {
-      throw {
-        status: 400,
-        message: `Full fine amount required. Outstanding fine: ${borrow.fine}`,
-      };
+      throw new AppError(
+        `Full fine amount required. Outstanding fine: ${borrow.fine}`,
+        400
+      );
     }
 
-    const payment = await FinePayment.create({
-      userId,
-      borrowId,
-      amount,
-      method,
-      paymentDate: new Date(),
-    });
+    try {
+      // Create payment
+      const payment = await FinePayment.create({
+        userId,
+        borrowId,
+        amount,
+        method,
+        paymentDate: new Date(),
+      });
 
-    // Update Borrow record
-    borrow.fine = 0;
-    borrow.status = "returned";
-    borrow.returnDate = new Date();
-    await borrow.save();
+      // Update borrow record
+      borrow.fine = 0;
+      borrow.status = "returned";
+      borrow.returnDate = new Date();
+      await borrow.save();
 
-    return {
-      message: "Fine payment successful",
-      payment,
-    };
+      return {
+        message: "Fine payment successful",
+        payment,
+      };
+    } catch (err:unknown) {
+      if (err instanceof mongoose.Error.ValidationError) {
+        throw new AppError(err.message, 400);
+      }
+      throw err;
+    }
   }
 
-  /* --------------------------------------------------
-   * GET PAYMENTS BY USER
-   * -------------------------------------------------- */
-  async getPaymentsByUser(userId: string, query: any) {
+  async getPaymentsByUser(userId: string, query: unknown) {
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      throw { status: 400, message: "Invalid user ID" };
+      throw new AppError("Invalid user ID", 400);
     }
 
-    const { page, limit, skip, sort } = getPagination(query, "-paymentDate");
+    assertIsObject(query, "Invalid query parameters");
+
+    const pagination = getPagination(
+      query as Record<string, unknown>,
+      "-paymentDate"
+    );
+    const { page, limit, skip, sort } = pagination;
 
     const total = await FinePayment.countDocuments({ userId });
 
@@ -75,11 +104,15 @@ class FinePaymentService {
     };
   }
 
-  /* --------------------------------------------------
-   * GET ALL PAYMENT HISTORY
-   * -------------------------------------------------- */
-  async getPaymentHistory(query: any) {
-    const { page, limit, skip, sort } = getPagination(query, "-paymentDate");
+  async getPaymentHistory(query: unknown) {
+    assertIsObject(query, "Invalid query parameters");
+
+    const pagination = getPagination(
+      query as Record<string, unknown>,
+      "-paymentDate"
+    );
+
+    const { page, limit, skip, sort } = pagination;
 
     const total = await FinePayment.countDocuments();
 
@@ -88,9 +121,7 @@ class FinePaymentService {
       .populate({
         path: "borrowId",
         select: "issueDate dueDate status fine",
-        populate: [
-          { path: "bookId", select: "title author" },
-        ]
+        populate: [{ path: "bookId", select: "title author" }],
       })
       .select("userId borrowId amount method paymentDate")
       .sort(sort)
@@ -104,12 +135,9 @@ class FinePaymentService {
     };
   }
 
-  /* --------------------------------------------------
-   * GET PAYMENT BY ID
-   * -------------------------------------------------- */
   async getPaymentById(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw { status: 400, message: "Invalid payment ID" };
+      throw new AppError("Invalid payment ID", 400);
     }
 
     const payment = await FinePayment.findById(id)
@@ -117,7 +145,9 @@ class FinePaymentService {
       .populate("borrowId", "issueDate dueDate fine status")
       .lean();
 
-    if (!payment) throw { status: 404, message: "Fine payment not found" };
+    if (!payment) {
+      throw new AppError("Fine payment not found", 404);
+    }
 
     return payment;
   }

@@ -1,79 +1,74 @@
 import mongoose from "mongoose";
-import { Book, IBook } from "../models/Book";
+import { Book } from "../models/Book";
 import { Borrow } from "../models/Borrow";
 import { buildSearchFilter } from "../utils/buildSearchFilter";
-
-type BookUpdateFields = Partial<
-  Pick<
-    IBook,
-    | "title"
-    | "author"
-    | "publisher"
-    | "genre"
-    | "publicationYear"
-    | "totalCopies"
-    | "shelfLocation"
-    | "summary"
-  >
->;
+import { BookSearchQuery, BookCreateFields, BookUpdateFields } from "../types/bookTypes";
+import { assertIsObject } from "../utils/errors/validateObject";
+import { AppError } from "../utils/errors/AppError";
 
 class BookService {
-  /* ------------------------- ADD BOOK ------------------------- */
-  async addBook(data: any) {
-    const {
-      title,
-      author,
-      publisher,
-      isbn,
-      genre,
-      publicationYear,
-      totalCopies,
-      availableCopies,
-      shelfLocation,
-      summary,
-    } = data;
 
-    if (availableCopies > totalCopies) {
-      throw { status: 400, message: "Available copies cannot exceed total copies." };
+  async addBook(data: unknown) {
+    assertIsObject(data, "Invalid request body");
+    const body = data as Partial<BookCreateFields>;
+
+    const required: (keyof BookCreateFields)[] = [
+      "title",
+      "author",
+      "publisher",
+      "isbn",
+      "genre",
+      "publicationYear",
+      "totalCopies",
+      "availableCopies",
+    ];
+
+    // Validate required fields
+    for (const field of required) {
+      if (body[field] == null) {
+        throw new AppError(`Missing required field: ${field}`, 400);
+      }
+    }
+
+    // Business rule validation
+    if (body.availableCopies! > body.totalCopies!) {
+      throw new AppError("Available copies cannot exceed total copies.", 400);
     }
 
     try {
-      const newBook = await Book.create({
-        title,
-        author,
-        publisher,
-        isbn,
-        genre,
-        publicationYear,
-        totalCopies,
-        availableCopies,
-        shelfLocation,
-        summary,
-      });
-
+      const newBook = await Book.create(body);
       return newBook;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      // Mongoose validation error
       if (err instanceof mongoose.Error.ValidationError) {
-        throw { status: 400, message: err.message };
+        throw new AppError(err.message, 400);
       }
-      if (err.code === 11000) {
-        throw { status: 400, message: "Book with this ISBN already exists" };
+
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        err.code === 11000
+      ) {
+        throw new AppError("Book with this ISBN already exists.", 400);
       }
-      throw err;
+
+      throw err; 
     }
   }
 
-  /* ------------------------- UPDATE BOOK ------------------------- */
-  async updateBook(id: string, body: any) {
-    const forbiddenFields = ["isbn", "availableCopies"];
-    if (forbiddenFields.some((f) => f in body)) {
-      throw {
-        status: 400,
-        message: `You cannot update fields: ${forbiddenFields.join(", ")}`,
-      };
+  async updateBook(id: string, data: unknown) {
+    assertIsObject(data, "Invalid request body");
+
+    const bodyObj = data as Record<string, unknown>;
+
+    const forbidden = ["isbn", "availableCopies"];
+
+    if (forbidden.some((field) => field in bodyObj)) {
+      throw new AppError(`You cannot update fields: ${forbidden.join(", ")}`, 400);
     }
 
-    const allowedFields = [
+    const allowed = [
       "title",
       "author",
       "publisher",
@@ -85,52 +80,60 @@ class BookService {
     ];
 
     const updateData = Object.fromEntries(
-      Object.entries(body).filter(([k]) => allowedFields.includes(k))
+      Object.entries(bodyObj).filter(([k]) => allowed.includes(k))
     ) as BookUpdateFields;
 
     if (Object.keys(updateData).length === 0) {
-      throw { status: 400, message: "No valid fields provided for update." };
+      throw new AppError("No valid fields provided for update.", 400);
     }
 
     const existing = await Book.findById(id);
     if (!existing) {
-      throw { status: 404, message: "Book not found" };
+      throw new AppError("Book not found", 404);
     }
 
     if (
       updateData.totalCopies != null &&
       existing.availableCopies > updateData.totalCopies
     ) {
-      throw {
-        status: 400,
-        message: `Total copies cannot be less than currently available copies (${existing.availableCopies}).`,
-      };
+      throw new AppError(
+        `Total copies cannot be less than current available copies (${existing.availableCopies}).`,
+        400
+      );
     }
 
-    const updated = await Book.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
-    });
+    try {
+      const updated = await Book.findByIdAndUpdate(id, updateData, {
+        new: true,
+        runValidators: true,
+      });
 
-    return {
-      message: "Book Updated Successfully",
-      updatedBook: updated,
-    };
+      return {
+        message: "Book updated successfully",
+        updatedBook: updated,
+      };
+    } catch (err) {
+      if (err instanceof mongoose.Error.ValidationError) {
+        throw new AppError(err.message, 400);
+      }
+      throw err;
+    }
   }
 
-  /* ------------------------- FETCH ALL BOOKS ------------------------- */
   async fetchAllBooks() {
     return Book.find({}).sort({ createdAt: -1 }).lean();
   }
-
-  /* ------------------------- FETCH BY ID ------------------------- */
   async fetchBookById(id: string) {
     const book = await Book.findById(id).lean();
-    if (!book) throw { status: 404, message: `Book not found for id: ${id}` };
+    if (!book) {
+      throw new AppError(`Book not found for id: ${id}`, 404);
+    }
     return book;
   }
 
-  /* ------------------------- DELETE BOOK ------------------------- */
+  /* --------------------------------------------------------
+   * DELETE BOOK
+   * -------------------------------------------------------- */
   async deleteBookById(id: string) {
     const activeBorrow = await Borrow.findOne({
       bookId: id,
@@ -138,15 +141,12 @@ class BookService {
     });
 
     if (activeBorrow) {
-      throw {
-        status: 400,
-        message: "This book is currently issued and cannot be deleted.",
-      };
+      throw new AppError("This book is currently issued and cannot be deleted.", 400);
     }
 
     const deleted = await Book.findByIdAndDelete(id);
     if (!deleted) {
-      throw { status: 404, message: `Book not found for id: ${id}` };
+      throw new AppError(`Book not found for id: ${id}`, 404);
     }
 
     return {
@@ -155,18 +155,23 @@ class BookService {
     };
   }
 
-  /* ------------------------- SEARCH BOOK ------------------------- */
-  async searchBook(query: any) {
+  /* --------------------------------------------------------
+   * SEARCH BOOK
+   * -------------------------------------------------------- */
+  async searchBook(query: unknown) {
+    assertIsObject(query, "Invalid search query");
+
+    const q = query as BookSearchQuery;
+
     const fields = ["title", "author", "isbn", "genre"] as const;
 
-    const filter = buildSearchFilter(query, fields);
+    const filter = buildSearchFilter(q, fields);
 
     if (Object.keys(filter).length === 0) {
-      throw {
-        status: 400,
-        message:
-          "Please provide at least one search parameter (title, author, isbn, genre).",
-      };
+      throw new AppError(
+        "Please provide at least one search parameter: title, author, isbn, genre.",
+        400
+      );
     }
 
     return Book.find(filter).lean();

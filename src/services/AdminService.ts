@@ -6,15 +6,18 @@ import { FinePayment } from "../models/FinedPayment";
 import timeAgo from "../utils/timeAgo";
 
 class AdminService {
-
   /* ------------------ FETCH ADMIN STATS ------------------ */
   async fetchAdminStats() {
     const totalBooks =
-      (await Book.aggregate([
-        { $group: { _id: null, totalCopies: { $sum: "$totalCopies" } } },
-      ]))[0]?.totalCopies || 0;
+      (
+        await Book.aggregate([
+          { $group: { _id: null, totalCopies: { $sum: "$totalCopies" } } },
+        ])
+      )[0]?.totalCopies || 0;
 
-    const totalCustomers = await User.countDocuments({ role: { $ne: "admin" } });
+    const totalCustomers = await User.countDocuments({
+      role: { $ne: "admin" },
+    });
 
     const activeBorrows = await Borrow.countDocuments({
       status: { $ne: "returned" },
@@ -25,9 +28,11 @@ class AdminService {
     });
 
     const totalFines =
-      (await FinePayment.aggregate([
-        { $group: { _id: null, total: { $sum: "$amount" } } },
-      ]))[0]?.total || 0;
+      (
+        await FinePayment.aggregate([
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ])
+      )[0]?.total || 0;
 
     return {
       totalBooks,

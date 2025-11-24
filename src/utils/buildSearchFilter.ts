@@ -1,5 +1,5 @@
 export function buildSearchFilter(
-  query: Record<string, any>,
+  query: Record<string, unknown>,
   fields: readonly string[]
 ) {
   return Object.fromEntries(
