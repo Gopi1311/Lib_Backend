@@ -81,7 +81,7 @@ class BorrowService {
         message: "Book issued successfully",
         borrowRecord,
       };
-    } catch (err:unknown) {
+    } catch (err: unknown) {
       if (err instanceof mongoose.Error.ValidationError) {
         throw new AppError(err.message, 400);
       }

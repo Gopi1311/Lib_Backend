@@ -10,6 +10,7 @@ import reservationRouter from "./router/ReservationRouter";
 import reviewRouter from "./router/ReviewRouter";
 import finePaymentRouter from "./router/FinePaymentRouter";
 import adminDashBoardRouter from "./router/AdminDashBoardRouter";
+import { globalErrorHandler } from "./middleware/errorHandler";
 
 import "./utils/cron/AutoFineCheck";
 import "./utils/cron/AutoExpireReservations";
@@ -31,6 +32,7 @@ app.use("/api/reservations",reservationRouter);
 app.use("/api/fines",finePaymentRouter);
 app.use("/api/reviews",reviewRouter);
 app.use("/api/admin",adminDashBoardRouter);
+app.use(globalErrorHandler);
 
 
 connectDB().then(() => {
