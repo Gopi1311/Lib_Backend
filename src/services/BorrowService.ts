@@ -140,16 +140,13 @@ class BorrowService {
   }
 
   async getBorrowDetailsByUser(id: string) {
-    const user = await User.findById(id).select("name email role phone");
-    if (!user) throw new AppError("User not found by ID", 404);
-
     const borrowDetails = await Borrow.find({ userId: id })
       .populate("bookId", "title author genre isbn publicationYear")
       .select("issueDate dueDate returnDate status fine bookId")
       .sort({ issueDate: -1 })
       .lean();
 
-    return { user, borrowDetails };
+    return borrowDetails;
   }
 
   async getBorrowHistory() {
@@ -185,6 +182,20 @@ class BorrowService {
       total: outstanding.length,
       data: outstanding,
     };
+  }
+
+  async getOutStandingFineByUser(id: string) {
+    console.log("Fetching outstanding fines for user:", id);
+
+    const outstanding = await Borrow.find({
+      userId: id,
+      fine: { $gt: 0 },
+      status: { $ne: "returned" },
+    })
+      .populate("bookId", "title author")
+      .lean();
+
+    return { data: outstanding };
   }
 }
 

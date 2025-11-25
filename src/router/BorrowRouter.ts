@@ -9,6 +9,7 @@ import {
 const router = Router();
 router.get("/history", BorrowBookController.getBorrowHistory);
 router.get("/outstanding", BorrowBookController.getOutStandingFine);
+router.get("/user/outstanding/:id",BorrowBookController.getOutStandingFineByUser)
 router.get("/details/:id", BorrowBookController.getBorrowDetailsById);
 router.get("/user/:id", BorrowBookController.getBorrowDetailsByUser);
 
@@ -24,4 +25,4 @@ router.patch(
   BorrowBookController.updateBorrowStatus
 );
 
-export default router;
+export default router;  

@@ -41,4 +41,8 @@ export class BorrowBookController {
     const result = await borrowService.getOutStandingFine();
     res.status(200).json(result);
   });
+  static getOutStandingFineByUser = catchAsync(async(req:Request,res:Response)=>{
+    const result = await borrowService.getOutStandingFineByUser(req.params.id);
+    res.status(200).json(result);
+  })
 }
