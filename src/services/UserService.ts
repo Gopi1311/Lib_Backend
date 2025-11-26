@@ -6,6 +6,8 @@ import { buildSearchFilter } from "../utils/buildSearchFilter";
 import { generateRandomId } from "../utils/generateRandomId";
 import { assertIsObject } from "../utils/errors/validateObject";
 import { AppError } from "../utils/errors/AppError";
+import bcrypt from "bcrypt";
+import { config } from "../config/env";
 
 interface CreateUserFields {
   name: string;
@@ -25,7 +27,6 @@ interface UpdateUserFields {
 }
 
 class UserService {
- 
   async addUser(data: unknown) {
     assertIsObject(data, "Invalid request body");
     const body = data as Partial<CreateUserFields>;
@@ -44,19 +45,21 @@ class UserService {
         throw new AppError(`Missing field: ${field}`, 400);
       }
     }
-
-    // Check duplicate email
     const existing = await User.findOne({ email: body.email });
     if (existing) throw new AppError("Email already exists.", 409);
 
     // Generate membershipId
-    let membershipId: string | null = null;
+    let membershipId: string | undefined = undefined;
     if (body.role === "member") membershipId = generateRandomId("MEMB");
     if (body.role === "librarian") membershipId = generateRandomId("LIB");
 
     try {
+      // Hash password BEFORE saving (very important)
+      const hashedPassword = await bcrypt.hash(body.password!,10);
+
       const newUser = await User.create({
         ...body,
+        password: hashedPassword,
         membershipId,
       });
 
@@ -66,7 +69,7 @@ class UserService {
         message: "User created successfully",
         user: safeUser,
       };
-    } catch (err:unknown) {
+    } catch (err: unknown) {
       if (err instanceof mongoose.Error.ValidationError) {
         throw new AppError(err.message, 400);
       }
@@ -119,8 +122,37 @@ class UserService {
       throw new AppError("User not found", 404);
     }
 
-    return user;
+    const userId = user._id;
+
+    // 📌 Last Borrow Status
+    const lastBorrow = await Borrow.findOne({ userId })
+      .sort({ issueDate: -1 })
+      .lean();
+
+    const lastBorrowStatus = lastBorrow ? lastBorrow.status : "none";
+
+    // 📌 Pending Fines
+    const pendingFineBorrow = await Borrow.findOne({
+      userId,
+      fine: { $gt: 0 },
+    }).lean();
+
+    const pendingFines = pendingFineBorrow ? pendingFineBorrow.fine : 0;
+
+    // 📌 Active reservations count
+    const reservations = await Reservation.countDocuments({
+      userId,
+      status: "active",
+    });
+
+    return {
+      ...user,
+      lastBorrowStatus,
+      pendingFines,
+      reservations,
+    };
   }
+
   async updateUser(id: string, data: unknown) {
     assertIsObject(data, "Invalid request body");
 

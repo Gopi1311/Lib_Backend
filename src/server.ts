@@ -10,30 +10,35 @@ import reservationRouter from "./router/ReservationRouter";
 import reviewRouter from "./router/ReviewRouter";
 import finePaymentRouter from "./router/FinePaymentRouter";
 import adminDashBoardRouter from "./router/AdminDashBoardRouter";
+import memberDashBoardRouter from "./router/MemberRouter";
 import { globalErrorHandler } from "./middleware/errorHandler";
 
 import "./utils/cron/AutoFineCheck";
 import "./utils/cron/AutoExpireReservations";
 
+import cookieParser from "cookie-parser";
+import authRoutes from "./router/AuthRouters";
 
 const app = express();
 app.use(express.json());
 app.use(
   cors({
-    origin: ["http://localhost:5173"], 
+    origin: ["http://localhost:5173"],
     credentials: true,
-  }) 
+  })
 );
+app.use(cookieParser());
 
-app.use("/api/books", bookRouter);
-app.use("/api/users",userRouter);
-app.use("/api/borrows",borrowRouter);
-app.use("/api/reservations",reservationRouter);
-app.use("/api/fines",finePaymentRouter);
-app.use("/api/reviews",reviewRouter);
-app.use("/api/admin",adminDashBoardRouter);
 app.use(globalErrorHandler);
-
+app.use("/api/auth", authRoutes);
+app.use("/api/books", bookRouter);
+app.use("/api/users", userRouter);
+app.use("/api/borrows", borrowRouter);
+app.use("/api/reservations", reservationRouter);
+app.use("/api/fines", finePaymentRouter);
+app.use("/api/reviews", reviewRouter);
+app.use("/api/admin", adminDashBoardRouter);
+app.use("/api/member", memberDashBoardRouter);
 
 connectDB().then(() => {
   app.listen(config.PORT, () => {

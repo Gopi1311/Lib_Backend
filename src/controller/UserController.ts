@@ -15,7 +15,7 @@ export class UserController {
   });
 
   static getUserById = catchAsync(async (req: Request, res: Response) => {
-    const result = await userService.getUserById(req.params.id);
+    const result = await userService.getUserById(req.user.id);
     res.status(200).json(result);
   });
 

@@ -192,6 +192,7 @@ class BorrowService {
       fine: { $gt: 0 },
       status: { $ne: "returned" },
     })
+   
       .populate("bookId", "title author")
       .lean();
 

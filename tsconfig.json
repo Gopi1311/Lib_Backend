@@ -1,20 +1,19 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
     "esModuleInterop": true,
-    
+
     "rootDir": "./src",
     "outDir": "./dist",
 
     "strict": true,
     "skipLibCheck": true,
     "sourceMap": true,
-    "types": ["node"]
+
+    "types": ["node", "express"],
+    "typeRoots": ["./src/types", "./node_modules/@types"]
   },
-  "include": ["src", "src/utils/errors"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules"]
 }
-
-

@@ -1,4 +1,3 @@
-// router file
 import { Router } from "express";
 import { AdminController } from "../controller/AdminController";
 const router = Router();

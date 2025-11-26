@@ -3,11 +3,6 @@ import { objectId, paginationSchema } from "../validations/common";
 
 // 1️⃣ Create Fine Payment (POST /)
 export const payFineSchema = Joi.object({
-  userId: objectId.required().messages({
-    "any.required": "User ID is required",
-    "any.invalid": "Invalid User ID format",
-  }),
-
   borrowId: objectId.required().messages({
     "any.required": "Borrow ID is required",
     "any.invalid": "Invalid Borrow ID format",
@@ -24,6 +19,7 @@ export const payFineSchema = Joi.object({
     "any.required": "Payment method is required",
   }),
 });
+
 
 // 2️⃣ Validate query params for history & list
 export const finePaymentQuerySchema = Joi.object({
