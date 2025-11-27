@@ -11,7 +11,7 @@ export class FinePaymentController {
 
   static getPaymentsByUser = catchAsync(async (req: Request, res: Response) => {
     const result = await finePaymentService.getPaymentsByUser(
-      req.params.id,
+      req.user.id,
       req.query
     );
     res.status(200).json(result);

@@ -34,7 +34,7 @@ export class ReviewController {
 
   static getReviewsByUser = catchAsync(async (req: Request, res: Response) => {
     const result = await reviewService.getReviewsByUser(
-      req.params.userId,
+      req.user.userId,
       req.query
     );
     res.status(200).json(result);

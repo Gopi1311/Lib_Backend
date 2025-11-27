@@ -3,8 +3,8 @@ import { IUser } from "./User";
 import { IBook } from "./Book";
 
 export interface IBorrow extends Document {
-  userId: Types.ObjectId | IUser;      // allow populated user object
-  bookId: Types.ObjectId | IBook;      // allow populated book object
+  userId: Types.ObjectId | IUser;      
+  bookId: Types.ObjectId | IBook;     
   issueDate: Date;
   dueDate: Date;
   returnDate: Date | null;

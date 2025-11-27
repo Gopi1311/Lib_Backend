@@ -3,6 +3,8 @@ import { Reservation } from "../models/Reservation";
 import { FinePayment } from "../models/FinedPayment";
 import timeAgo from "../utils/timeAgo";
 import mongoose from "mongoose";
+import { config } from "../config/env";
+
 
 class MemberService {
   async fetchMemberStats(userId: string) {

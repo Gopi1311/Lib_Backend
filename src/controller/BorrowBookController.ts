@@ -20,7 +20,7 @@ export class BorrowBookController {
 
   /* ---------------- USER BORROW LIST ---------------- */
   static getBorrowDetailsByUser = catchAsync(async (req: Request, res: Response) => {
-    const result = await borrowService.getBorrowDetailsByUser(req.params.id);
+    const result = await borrowService.getBorrowDetailsByUser(req.user.id);
     res.status(200).json(result);
   });
 
@@ -42,7 +42,7 @@ export class BorrowBookController {
     res.status(200).json(result);
   });
   static getOutStandingFineByUser = catchAsync(async(req:Request,res:Response)=>{
-    const result = await borrowService.getOutStandingFineByUser(req.params.id);
+    const result = await borrowService.getOutStandingFineByUser(req.user.id);
     res.status(200).json(result);
   })
 }

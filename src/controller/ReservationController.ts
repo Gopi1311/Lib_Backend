@@ -16,7 +16,7 @@ export class ReservationController {
 
   static getUserReservations = catchAsync(async (req: Request, res: Response) => {
     const result = await reservationService.getUserReservations(
-      req.params.id,
+      req.user.id,
       req.query
     );
     res.status(200).json(result);

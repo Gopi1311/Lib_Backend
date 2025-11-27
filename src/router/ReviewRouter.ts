@@ -9,34 +9,36 @@ import {
   reviewBookParamSchema,
   reviewUserParamSchema,
 } from "../validations/reviewValidate";
+import { requireAuth } from "../middleware/requireAuth";
+import { requireRole } from "../middleware/roles";
 
 const router = Router();
 
-router.post("/", validate(addReviewSchema), ReviewController.addReview);
+router.post("/",requireAuth,requireRole(["member"]), validate(addReviewSchema), ReviewController.addReview);
 
-router.get("/all", ReviewController.getAllReviews);
+router.get("/all",requireAuth,requireRole(["admin"]), ReviewController.getAllReviews);
 
 router.get(
-  "/book/:bookId",
+  "/book/:bookId",requireAuth,requireRole(["admin","member"]),
   validate(reviewBookParamSchema),
   ReviewController.getReviewsByBook
 );
 
 router.get(
-  "/user/:userId",
+  "/user/me",requireAuth,requireRole(["member"]),
   validate(reviewUserParamSchema),
   ReviewController.getReviewsByUser
 );
 
 router.put(
-  "/:id",
+  "/:id",requireAuth,requireRole(["member"]),
   validate(reviewIdParamSchema),
   validate(updateReviewSchema),
   ReviewController.updateReview
 );
 
 router.delete(
-  "/:id",
+  "/:id",requireAuth,requireRole(["member"]),
   validate(reviewIdParamSchema),
   ReviewController.deleteReview
 );

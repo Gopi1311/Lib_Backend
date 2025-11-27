@@ -14,8 +14,9 @@ export const config = {
   MONGO_URL: getEnvVariable("MONGO_URL"),
   JWT_ACCESS_SECRET:getEnvVariable("JWT_ACCESS_SECRET"),
   JWT_REFRESH_SECRET:getEnvVariable("JWT_REFRESH_SECRET"),
-  JWT_ACCESS_EXPIRES:getEnvVariable("JWT_ACCESS_EXPIRES"),
-  JWT_REFRESH_EXPIRES:getEnvVariable("JWT_REFRESH_EXPIRES"),
+  JWT_ACCESS_EXPIRES:getEnvVariable("JWT_ACCESS_EXPIRES") as `${number}${"s"|"m"|"h"|"d"}`,
+  JWT_REFRESH_EXPIRES:getEnvVariable("JWT_REFRESH_EXPIRES") as `${number}${"s"|"m"|"h"|"d"}`,
   NODE_ENV:getEnvVariable("NODE_ENV"),
-  BCRYPT_SALT_ROUNDS:getEnvVariable("BCRYPT_SALT_ROUNDS")
+  BCRYPT_SALT_ROUNDS:getEnvVariable("BCRYPT_SALT_ROUNDS"),
+
 };

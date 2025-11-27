@@ -29,7 +29,7 @@ app.use(
 );
 app.use(cookieParser());
 
-app.use(globalErrorHandler);
+
 app.use("/api/auth", authRoutes);
 app.use("/api/books", bookRouter);
 app.use("/api/users", userRouter);
@@ -39,6 +39,9 @@ app.use("/api/fines", finePaymentRouter);
 app.use("/api/reviews", reviewRouter);
 app.use("/api/admin", adminDashBoardRouter);
 app.use("/api/member", memberDashBoardRouter);
+app.use(globalErrorHandler);
+
+
 
 connectDB().then(() => {
   app.listen(config.PORT, () => {

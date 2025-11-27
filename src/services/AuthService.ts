@@ -31,9 +31,10 @@ export class AuthService {
     if (!refreshToken) throw new AppError("Refresh token missing", 401);
 
     const payload = verifyRefreshToken(refreshToken);
-
+    console.log("refresh token:",payload);
+     const { exp, iat, ...cleanPayload } = payload;
     return {
-      newAccessToken: generateAccessToken(payload),
+      newAccessToken: generateAccessToken(cleanPayload),
     };
   }
 }
