@@ -6,5 +6,6 @@ const router = Router();
 
 router.get("/stats",requireAuth,requireRole(["admin"]),AdminController.fetchAdminStats );
 router.get("/recent-activities",requireAuth,requireRole(["admin"]),AdminController.fetchRecentActivities);
+router.get("/chart",AdminController.fetchChartActivities);
 
 export default router;

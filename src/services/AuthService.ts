@@ -18,7 +18,7 @@ export class AuthService {
 
     if (!valid) throw new AppError("Invalid email or password", 401);
 
-    const payload = { id: user._id.toString(), role: user.role } as const;
+    const payload = { id: user._id.toString(), role: user.role,email:user.email,name:user.name } as const;
 
     return {
       user,

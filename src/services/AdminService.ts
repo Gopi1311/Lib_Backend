@@ -85,6 +85,43 @@ class AdminService {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5);
   }
+
+  async fetchChartDatas() {
+    const borrowStatusCount = await Borrow.aggregate([
+      {
+        $match: {
+          issueDate: {
+            $gte: new Date("2025-11-24T00:00:00.000Z"),
+            $lte: new Date("2025-11-24T23:59:59.999Z"),
+          },
+        },
+      },
+      {
+        $group: { _id: "$status", count: { $sum: 1 } },
+      },
+    ]);
+    const reservationStatusCount = await Reservation.aggregate([
+      {
+        $match: {
+          reservedDate: {
+            $gte: new Date("2025-11-24T00:00:00.000Z"),
+            $lte: new Date("2025-11-24T23:59:59.999Z"),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    return {
+      borrowStatusCount,
+      reservationStatusCount,
+    };
+  }
 }
 
 export default new AdminService();

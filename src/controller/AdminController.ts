@@ -3,13 +3,10 @@ import adminStatsService from "../services/AdminService";
 import { catchAsync } from "../utils/errors/catchAsync";
 
 export class AdminController {
-  
-  static fetchAdminStats = catchAsync(
-    async (req: Request, res: Response) => {
-      const stats = await adminStatsService.fetchAdminStats();
-      res.status(200).json(stats);
-    }
-  );
+  static fetchAdminStats = catchAsync(async (req: Request, res: Response) => {
+    const stats = await adminStatsService.fetchAdminStats();
+    res.status(200).json(stats);
+  });
 
   static fetchRecentActivities = catchAsync(
     async (req: Request, res: Response) => {
@@ -17,5 +14,10 @@ export class AdminController {
       res.status(200).json({ recentActivities: activities });
     }
   );
+  static fetchChartActivities = catchAsync(
+    async (req: Request, res: Response) => {
+      const chartData = await adminStatsService.fetchChartDatas();
+      res.status(200).json({ chartData });
+    }
+  );
 }
- 
