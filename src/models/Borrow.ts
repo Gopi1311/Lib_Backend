@@ -50,6 +50,7 @@ const BorrowSchema = new Schema<IBorrow>(
       type: String,
       enum: ["issued", "returned", "late"],
       default: "issued",
+      index:true,
     },
 
     fine: {

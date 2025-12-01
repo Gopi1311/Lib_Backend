@@ -1,4 +1,6 @@
+import {customAlphabet} from "nanoid";
+const nanoId6=customAlphabet("0123456789",6)
 export const  generateRandomId=(prefix: string)=> {
-  return prefix + Math.floor(100000 + Math.random() * 900000);
+  return prefix +nanoId6();
 }
 

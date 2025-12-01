@@ -149,6 +149,45 @@ class BorrowService {
     return borrowDetails;
   }
 
+  // async getBorrowDetailsByUser(id: string) {
+  //   const borrowDetails = await Borrow.aggregate([
+  //     { $match: { userId: new mongoose.Types.ObjectId(id) } },
+
+  //     { $sort: { issueDate: -1 } },
+
+  //     {
+  //       $lookup: {
+  //         from: "books",
+  //         localField: "bookId",
+  //         foreignField: "_id",
+  //         as: "bookId",
+  //       },
+  //     },
+
+  //     { $unwind: "$bookId" },
+
+  //     {
+  //       $project: {
+  //         issueDate: 1,
+  //         dueDate: 1,
+  //         returnDate: 1,
+  //         status: 1,
+  //         fine: 1,
+  //         bookId: {
+  //           _id: 1,
+  //           title: 1,
+  //           author: 1,
+  //           genre: 1,
+  //           isbn: 1,
+  //           publicationYear: 1,
+  //         },
+  //       },
+  //     },
+  //   ]);
+
+  //   return borrowDetails;
+  // }
+
   async getBorrowHistory() {
     const borrowDetails = await Borrow.find()
       .populate("userId", "name email role phone")
@@ -159,6 +198,8 @@ class BorrowService {
 
     return { borrowDetails };
   }
+
+  
 
   async getBorrowDetailsById(id: string) {
     const borrow = await Borrow.findById(id)
@@ -192,7 +233,7 @@ class BorrowService {
       fine: { $gt: 0 },
       status: { $ne: "returned" },
     })
-   
+
       .populate("bookId", "title author")
       .lean();
 

@@ -21,12 +21,14 @@ const BookSchema = new Schema<IBook>(
       type: String,
       required: [true, "Book title is required"],
       trim: true,
+      index:true,
     },
 
     author: {
       type: String,
       required: [true, "Author name is required"],
       trim: true,
+      index:true,
     },
 
     publisher: {
